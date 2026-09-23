@@ -37,10 +37,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e44a9d4b.js";
+            window.path_to_searchindex_js = "searchindex-aeb8274f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-4dc10a98.js"></script>
+        <script src="toc-64310643.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -408,6 +408,7 @@ information.</p>
 ^/_matrix/client/(v1|unstable)/rooms/.*/relations/
 ^/_matrix/client/v1/rooms/.*/threads$
 ^/_matrix/client/unstable/im.nheko.summary/summary/.*$
+^/_matrix/client/v1/room_summary/.*$
 ^/_matrix/client/(r0|v3|unstable)/account/3pid$
 ^/_matrix/client/(r0|v3|unstable)/account/whoami$
 ^/_matrix/client/(r0|v3|unstable)/account/deactivate$
@@ -458,6 +459,9 @@ information.</p>
 
 # Unstable MSC4140 support
 ^/_matrix/client/unstable/org.matrix.msc4140/delayed_events(/.*/restart)?$
+
+# Stabilised Delegated Authentication support (`matrix_authentication_service.enabled: true`)
+^/_synapse/mas/
 </code></pre>
 <p>Additionally, the following REST endpoints can be handled for GET requests:</p>
 <pre><code># Push rules requests
@@ -472,6 +476,9 @@ information.</p>
 
 # Admin API requests
 ^/_synapse/admin/v2/users/[^/]+$
+
+# Unstable MSC4140 support
+^/_matrix/client/unstable/org.matrix.msc4140/delayed_events/[^/]+$
 </code></pre>
 <p>Pagination requests can also be handled, but all requests for a given
 room must be routed to the same instance. Additionally, care must be taken to
@@ -481,7 +488,7 @@ for the room are in flight:</p>
 </code></pre>
 <p>Additionally, the following endpoints should be included if Synapse is configured
 to use SSO (you only need to include the ones for whichever SSO provider you’re
-using):</p>
+using) and delegated authentication isn’t enabled:</p>
 <pre><code># for all SSO providers
 ^/_matrix/client/(api/v1|r0|v3|unstable)/login/sso/redirect
 ^/_synapse/client/pick_idp$
@@ -502,13 +509,6 @@ using):</p>
 For multiple workers not handling the SSO endpoints properly, see
 <a href="https://github.com/matrix-org/synapse/issues/7530">#7530</a> and
 <a href="https://github.com/matrix-org/synapse/issues/9427">#9427</a>.</p>
-<p>Additionally, when MSC3861 is enabled (<code>experimental_features.msc3861.enabled</code>
-set to <code>true</code>), the following endpoints can be handled by the worker:</p>
-<pre><code>^/_synapse/admin/v2/users/[^/]+$
-^/_synapse/admin/v1/username_available$
-^/_synapse/admin/v1/users/[^/]+/_allow_cross_signing_replacement_without_uia$
-^/_synapse/admin/v1/users/[^/]+/devices$
-</code></pre>
 <p>Note that a <a href="usage/configuration/config_documentation.html#listeners">HTTP listener</a>
 with <code>client</code> and <code>federation</code> <code>resources</code> must be configured in the
 <a href="usage/configuration/config_documentation.html#worker_listeners"><code>worker_listeners</code></a>
@@ -720,9 +720,14 @@ configured as stream writer for the <code>device_lists</code> stream:</p>
 </code></pre>
 <h5 id="the-quarantined_media_changes-stream"><a class="header" href="#the-quarantined_media_changes-stream">The <code>quarantined_media_changes</code> stream</a></h5>
 <p>The <code>quarantined_media_changes</code> stream supports multiple writers. The following endpoints
-can be handled by any worker, but should be routed directly to one of the workers
-configured as stream writer for the <code>quarantined_media_changes</code> stream:</p>
+must be routed directly to one of the workers configured as stream writer for the
+<code>quarantined_media_changes</code> stream (which must also be able to run the media
+repository, as these endpoints are only registered on media-capable workers):</p>
 <pre><code>^/_synapse/admin/v1/quarantine_media/.*$
+^/_synapse/admin/v1/room/.*/media/quarantine$
+^/_synapse/admin/v1/user/.*/media/quarantine$
+^/_synapse/admin/v1/media/quarantine/.*$
+^/_synapse/admin/v1/media/unquarantine/.*$
 </code></pre>
 <h4 id="restrict-outbound-federation-traffic-to-a-specific-set-of-workers"><a class="header" href="#restrict-outbound-federation-traffic-to-a-specific-set-of-workers">Restrict outbound federation traffic to a specific set of workers</a></h4>
 <p>The
